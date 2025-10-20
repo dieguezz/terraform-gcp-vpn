@@ -2,8 +2,10 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.terraform.io/hashicorp/archive" {
-  version = "2.7.1"
+  version     = "2.7.1"
+  constraints = "~> 2.0"
   hashes = [
+    "h1:62VrkalDPMKB9zerCBS4iKTbvxejwnAWn/XXYZZQWD4=",
     "h1:A7EnRBVm4h9ryO9LwxYnKr4fy7ExPMwD5a1DsY7m1Y0=",
     "zh:19881bb356a4a656a865f48aee70c0b8a03c35951b7799b6113883f67f196e8e",
     "zh:2fcfbf6318dd514863268b09bbe19bfc958339c636bcbcc3664b45f2b8bf5cc6",
@@ -21,8 +23,10 @@ provider "registry.terraform.io/hashicorp/archive" {
 }
 
 provider "registry.terraform.io/hashicorp/google" {
-  version = "7.7.0"
+  version     = "7.7.0"
+  constraints = ">= 7.4.0, < 8.0.0"
   hashes = [
+    "h1:3OTNFKoPV5LJCjF9RpO5iwI0KkAg42HVtf6bb2/3fqo=",
     "h1:XXIN2CJQVPeX2up/Fc0fxgvFvKPZ8n7EMYfHgUg19Qg=",
     "zh:1bb1991d8518c1a48bbb0bc13c2f8a3ff4087f04f0290c088bd409c45372fac0",
     "zh:3e90926772a7336773d0746b369881723356f8f9bcdc61f0c5edf6cf877c528a",
