@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+env:
+  TF_IN_AUTOMATION: true
+  TERRAFORM_VERSION: 1.6.6
+
+jobs:
+  lint-root:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Init (no backend)
+        run: terraform init -backend=false
+
+      - name: Validate
+        run: terraform validate
+
+      - name: TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.51.1
+      - name: Run TFLint
+        run: tflint --recursive
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          additional_args: --soft-fail # switch to hard fail later
+
+  examples:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        example: [ minimal, with-scheduler, site-to-site ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Enter example directory
+        working-directory: examples/${{ matrix.example }}
+        run: echo "Using example ${{ matrix.example }}"
+
+      - name: Terraform fmt
+        working-directory: examples/${{ matrix.example }}
+        run: terraform fmt -check -recursive
+
+      - name: Init (no backend)
+        working-directory: examples/${{ matrix.example }}
+        run: terraform init -backend=false
+
+      - name: Validate
+        working-directory: examples/${{ matrix.example }}
+        run: terraform validate
+
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install pre-commit
+        run: pip install pre-commit
+      - name: Run pre-commit (selected hooks)
+        run: pre-commit run --show-diff-on-failure --color always --all-files
+      - name: Terraform docs diff reminder
+        if: failure()
+        run: echo "Terraform docs need regeneration. Run pre-commit locally."

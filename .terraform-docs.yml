@@ -1,0 +1,12 @@
+formatter: markdown table
+sections:
+  hide:
+    - providers
+    - modules
+    - requirements
+    - resources
+sort:
+  by: name
+output:
+  file: README.md
+  mode: replace

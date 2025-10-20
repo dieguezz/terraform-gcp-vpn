@@ -4,6 +4,16 @@
 # Firezone Community Edition with Google Workspace SSO integration.
 # ==============================================================================
 
+terraform {
+  required_version = ">= 1.6.0, < 2.0.0"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 7.4.0, < 8.0.0"
+    }
+  }
+}
+
 # ==============================================================================
 # SERVICE ACCOUNT CONFIGURATION
 # ==============================================================================
@@ -56,6 +66,8 @@ resource "google_compute_instance" "vpn_server" {
       size  = var.disk_size_gb
       type  = var.disk_type
     }
+    # Optional CMEK encryption (uses Google-managed key when empty)
+    kms_key_self_link = var.kms_key_self_link != "" ? var.kms_key_self_link : null
   }
 
   network_interface {
@@ -74,7 +86,8 @@ resource "google_compute_instance" "vpn_server" {
   }
 
   metadata = {
-    enable-oslogin = var.enable_oslogin ? "TRUE" : "FALSE"
+    enable-oslogin         = var.enable_oslogin ? "TRUE" : "FALSE"
+    block-project-ssh-keys = var.block_project_ssh_keys ? "TRUE" : "FALSE"
   }
 
   # Firezone installation and configuration script
@@ -84,4 +97,14 @@ resource "google_compute_instance" "vpn_server" {
     firezone_admin_email    = var.firezone_admin_email
     wireguard_port          = var.wireguard_port
   })
+
+  # Shielded VM configuration (enabled by default; can be disabled if troubleshooting low-level boot issues)
+  dynamic "shielded_instance_config" {
+    for_each = var.enable_shielded_vm ? [1] : []
+    content {
+      enable_secure_boot          = true
+      enable_vtpm                 = true
+      enable_integrity_monitoring = true
+    }
+  }
 }

@@ -8,6 +8,16 @@
 # Architecture: Classic VPN (policy-based) without BGP
 # ==============================================================================
 
+terraform {
+  required_version = ">= 1.3.0"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+  }
+}
+
 # Static IP address for VPN Gateway
 resource "google_compute_address" "vpn_static_ip" {
   name   = "${var.resource_prefix}-vpn-gateway-ip-${var.environment}"
@@ -80,11 +90,11 @@ resource "google_compute_route" "vpn_routes" {
     for item in flatten([
       for tunnel_key, tunnel in var.vpn_tunnels : [
         for idx, dest in tunnel.remote_traffic_selector : {
-          key             = "${tunnel_key}-${idx}"
-          tunnel_key      = tunnel_key
-          dest_range      = dest
-          tunnel_name     = google_compute_vpn_tunnel.tunnels[tunnel_key].name
-          peer_name       = tunnel.peer_name
+          key         = "${tunnel_key}-${idx}"
+          tunnel_key  = tunnel_key
+          dest_range  = dest
+          tunnel_name = google_compute_vpn_tunnel.tunnels[tunnel_key].name
+          peer_name   = tunnel.peer_name
         }
       ]
     ]) : item.key => item

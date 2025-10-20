@@ -75,26 +75,6 @@ variable "site_to_site_subnet_cidr" {
 # VPN ROUTING CONFIGURATION
 # ==============================================================================
 
-variable "vpn_private_networks" {
-  description = <<-EOT
-    List of private networks that clients will route through the VPN.
-    This enables split-tunnel configuration - only specified networks use the VPN,
-    while other traffic goes directly from the client's local internet connection.
-    
-    Configure additional routes in Firezone admin interface as needed.
-  EOT
-  type        = list(string)
-  default = [
-    "10.200.0.0/24", # Site-to-site VPN subnet (example)
-    "10.0.0.0/8"     # RFC 1918 private space
-  ]
-  validation {
-    condition = alltrue([
-      for cidr in var.vpn_private_networks : can(cidrhost(cidr, 0))
-    ])
-    error_message = "All entries in vpn_private_networks must be valid CIDR blocks."
-  }
-}
 
 # ==============================================================================
 # SITE-TO-SITE VPN GATEWAY CONFIGURATION
@@ -345,6 +325,43 @@ variable "enable_ip_forwarding" {
   type        = bool
   default     = true
 }
+
+variable "enable_shielded_vm" {
+  description = "Enable Shielded VM features (secure boot, vTPM, integrity monitoring) for the VPN instance"
+  type        = bool
+  default     = true
+}
+
+variable "block_project_ssh_keys" {
+  description = "Block project-wide SSH keys on the instance to enforce OS Login or per-instance keys"
+  type        = bool
+  default     = true
+}
+
+variable "kms_key_self_link" {
+  description = "Customer-managed encryption key self link for the VPN instance boot disk (optional). Leave empty to use Google-managed encryption."
+  type        = string
+  default     = ""
+}
+
+variable "allowed_egress_destinations" {
+  description = "CIDR ranges allowed for egress traffic from the VPN instance (egress firewall). Default is unrestricted."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+  validation {
+    condition = length(var.allowed_egress_destinations) > 0 && alltrue([
+      for cidr in var.allowed_egress_destinations : can(cidrhost(cidr, 0))
+    ])
+    error_message = "All egress destination CIDRs must be valid IPv4 CIDR blocks and list cannot be empty."
+  }
+}
+
+variable "scheduler_bucket_kms_key" {
+  description = "Customer-managed encryption key self link for the Cloud Functions source bucket (optional). Leave empty for Google-managed encryption."
+  type        = string
+  default     = ""
+}
+
 
 variable "preemptible_instance" {
   description = "Use preemptible instance for cost savings (not recommended for production)"

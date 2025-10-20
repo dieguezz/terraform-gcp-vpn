@@ -5,6 +5,16 @@
 # These rules work for Firezone deployment.
 # ==============================================================================
 
+terraform {
+  required_version = ">= 1.6.0, < 2.0.0"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 7.4.0, < 8.0.0"
+    }
+  }
+}
+
 # ==============================================================================
 # VPN CLIENT ACCESS RULES
 # ==============================================================================
@@ -65,10 +75,12 @@ resource "google_compute_firewall" "allow_egress" {
   direction = "EGRESS"
   priority  = 1000
 
-  destination_ranges = ["0.0.0.0/0"]
+  destination_ranges = var.allowed_egress_destinations
   target_tags        = [var.network_tag]
 
   allow {
     protocol = "all"
   }
+  # Recommendation: Restrict destinations to specific partner networks or update repos.
+  # Justification for default 0.0.0.0/0: VPN server needs outbound updates, DNS, NTP and OIDC flows.
 }

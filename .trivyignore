@@ -1,0 +1,13 @@
+# Trivy misconfiguration ignores
+# Justifications:
+# AVD-GCP-0043 (IP forwarding) -> Required for VPN packet forwarding (WireGuard routing, site-to-site capabilities).
+# AVD-GCP-0035 (Unrestricted egress) -> Temporarily allowed by default for ease of deployment; users can restrict via allowed_egress_destinations variable.
+# AVD-GCP-0030 (Project-wide SSH keys) -> Mitigated: we set metadata block-project-ssh-keys=true and enforce SSH exclusively via IAP (source range 35.235.240.0/20). No direct key-based access from arbitrary networks.
+# AVD-GCP-0033 (Disk CMEK) -> Optional CMEK; default Google-managed encryption is acceptable for many use cases.
+# AVD-GCP-0066 (Bucket CMEK) -> Optional CMEK; acceptable default.
+# Shielded VM findings (AVD-GCP-0041, AVD-GCP-0045, AVD-GCP-0067) -> Now mitigated via enable_shielded_vm=true; ignore only if tool flags transient state.
+
+AVD-GCP-0043
+AVD-GCP-0035
+AVD-GCP-0033
+AVD-GCP-0066

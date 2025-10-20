@@ -78,6 +78,24 @@ variable "enable_oslogin" {
   default     = true
 }
 
+variable "enable_shielded_vm" {
+  description = "Enable Shielded VM features (secure boot, vTPM, integrity monitoring)"
+  type        = bool
+  default     = true
+}
+
+variable "block_project_ssh_keys" {
+  description = "Block project-wide SSH keys to enforce OS Login or per-instance keys"
+  type        = bool
+  default     = true
+}
+
+variable "kms_key_self_link" {
+  description = "Customer-managed encryption key self link for boot disk (optional)"
+  type        = string
+  default     = ""
+}
+
 # ==============================================================================
 # FIREZONE VARIABLES
 # ==============================================================================

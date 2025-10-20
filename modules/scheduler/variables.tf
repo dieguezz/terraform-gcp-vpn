@@ -128,3 +128,9 @@ variable "common_labels" {
     automated = "true"
   }
 }
+
+variable "bucket_kms_key" {
+  description = "Customer-managed encryption key self link for function source bucket (optional)"
+  type        = string
+  default     = ""
+}

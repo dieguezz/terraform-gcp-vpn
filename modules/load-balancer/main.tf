@@ -4,14 +4,24 @@
 # This module creates a regional Network Load Balancer for Firezone.
 # ==============================================================================
 
+terraform {
+  required_version = ">= 1.3.0"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+  }
+}
+
 # ==============================================================================
 # INSTANCE GROUP
 # ==============================================================================
 
 resource "google_compute_instance_group" "vpn_ig" {
-  name        = "${var.resource_prefix}-ig"
-  zone        = var.zone
-  instances   = [var.instance_self_link]
+  name      = "${var.resource_prefix}-ig"
+  zone      = var.zone
+  instances = [var.instance_self_link]
 
   named_port {
     name = "http"

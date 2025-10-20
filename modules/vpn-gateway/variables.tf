@@ -82,9 +82,9 @@ variable "vpn_secrets" {
     
     This variable is typically populated from Secret Manager data sources in the root module.
   EOT
-  type      = map(string)
-  sensitive = true
-  default   = {}
+  type        = map(string)
+  sensitive   = true
+  default     = {}
 
   validation {
     condition = alltrue([

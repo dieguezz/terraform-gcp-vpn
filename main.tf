@@ -71,15 +71,18 @@ module "compute" {
   zone           = var.zone
   instance_image = var.instance_image
   # Use site-to-site subnet so Firezone can reach partner networks when enabled
-  subnet_id            = module.network.site_to_site_subnet_id
-  network_tag          = local.network_tag
-  service_account_name = var.service_account_name
-  common_labels        = local.common_labels
-  preemptible_instance = var.preemptible_instance
-  disk_size_gb         = var.disk_size_gb
-  disk_type            = var.disk_type
-  enable_ip_forwarding = var.enable_ip_forwarding
-  enable_oslogin       = var.enable_oslogin
+  subnet_id              = module.network.site_to_site_subnet_id
+  network_tag            = local.network_tag
+  service_account_name   = var.service_account_name
+  common_labels          = local.common_labels
+  preemptible_instance   = var.preemptible_instance
+  disk_size_gb           = var.disk_size_gb
+  disk_type              = var.disk_type
+  enable_ip_forwarding   = var.enable_ip_forwarding
+  enable_oslogin         = var.enable_oslogin
+  enable_shielded_vm     = var.enable_shielded_vm
+  block_project_ssh_keys = var.block_project_ssh_keys
+  kms_key_self_link      = var.kms_key_self_link
 
   # Firezone specific variables
   firezone_domain         = var.firezone_domain
@@ -118,13 +121,14 @@ module "load_balancer" {
 module "security" {
   source = "./modules/security"
 
-  resource_prefix     = local.resource_prefix
-  vpc_name            = module.network.vpc_name
-  network_tag         = local.network_tag
-  tcp_ports           = local.firezone_tcp_ports # CHANGED: Use Firezone ports
-  udp_ports           = local.firezone_udp_ports # CHANGED: Use Firezone ports
-  allowed_vpn_sources = var.allowed_vpn_sources
-  allowed_ssh_sources = var.allowed_ssh_sources
+  resource_prefix             = local.resource_prefix
+  vpc_name                    = module.network.vpc_name
+  network_tag                 = local.network_tag
+  tcp_ports                   = local.firezone_tcp_ports # CHANGED: Use Firezone ports
+  udp_ports                   = local.firezone_udp_ports # CHANGED: Use Firezone ports
+  allowed_vpn_sources         = var.allowed_vpn_sources
+  allowed_ssh_sources         = var.allowed_ssh_sources
+  allowed_egress_destinations = var.allowed_egress_destinations
 }
 
 # ==============================================================================
@@ -174,4 +178,5 @@ module "scheduler" {
   schedule_timezone = var.scheduler_timezone
   scheduler_region  = var.scheduler_region
   common_labels     = local.common_labels
+  bucket_kms_key    = var.scheduler_bucket_kms_key
 }

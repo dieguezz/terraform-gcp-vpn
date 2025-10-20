@@ -1,0 +1,29 @@
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.103.0
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+        args: ["--hook-config=--timeout=60"]
+      - id: terraform_tflint
+        args:
+          - --args=--recursive
+      - id: terraform_trivy
+        stages: [pre-commit]
+        pass_filenames: false
+        args:
+          - --args=--severity=CRITICAL,HIGH
+          - --args=--ignorefile=.trivyignore
+      - id: terraform_checkov
+        stages: [manual]
+      - id: terraform_docs
+        stages: [pre-commit, pre-push]
+        # Note: Removed explicit --config flag due to wrapper getopt limitations.
+        # terraform-docs auto-detects .terraform-docs.yml in repo root.
+
+# Note: Removed direct tflint repo due to manifest resolution issue. The
+# terraform_tflint hook bundles tflint; run `tflint --init` manually if using
+# external rulesets (add them via tflint.hcl plugin blocks).
+
+default_language_version:
+  python: python3

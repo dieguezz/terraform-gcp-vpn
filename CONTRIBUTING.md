@@ -9,6 +9,66 @@ ask everyone to follow the guidelines below.
   proposing.
 - Update documentation or examples when behaviour changes.
 
+## Local Tooling Setup
+
+Install required CLI tools (macOS example):
+
+```bash
+brew install terraform tflint trivy terraform-docs pre-commit
+pip install --upgrade pre-commit
+```
+
+Initialize pre-commit hooks:
+
+```bash
+pre-commit install
+pre-commit run --all-files
+
+### Verify Tooling
+
+```bash
+terraform version
+tflint --version
+trivy --version
+terraform-docs --version
+```
+
+If any binary is missing, (macOS/Homebrew) reinstall:
+
+```bash
+brew reinstall terraform tflint trivy terraform-docs
+```
+```
+
+If hooks complain:
+1. Clear cache `rm -rf ~/.cache/pre-commit`.
+2. Update hooks `pre-commit autoupdate`.
+3. Re-run `pre-commit run --all-files`.
+
+### Regenerating Documentation
+
+The `terraform_docs` hook keeps Inputs/Outputs sections current. After changing variables or outputs:
+
+```bash
+pre-commit run terraform_docs --all-files
+git add README.md examples/*/README.md
+```
+
+### Security & Linting
+
+- `tflint` enforces style and provider best-practices.
+- `trivy` IaC scanning replaces deprecated `tfsec` (soft-fail initially if needed).
+- Add inline ignore only with justification (example for tflint): `# tflint-ignore: RULE`.
+
+### Optional Extras
+
+For deeper scans run manually:
+
+```bash
+trivy config .
+tflint --recursive
+```
+
 ## Commit Style
 - Use concise commit messages in the imperative voice (for example: `Add vpn
   tunnel verifier`).

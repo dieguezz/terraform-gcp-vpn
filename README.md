@@ -1,6 +1,15 @@
 # terraform-gcp-vpn
 
+<!-- Badges -->
+![CI](https://github.com/dieguezz/terraform-gcp-vpn/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/github/license/dieguezz/terraform-gcp-vpn)
+![Release](https://img.shields.io/github/v/release/dieguezz/terraform-gcp-vpn?display_name=tag)
+![Maintained](https://img.shields.io/badge/maintained-yes-success)
+
+
 Production-ready VPN infrastructure on Google Cloud with Terraform. (Current implementation: Firezone + WireGuard remote access, optional IPsec site-to-site.)
+
+> For support, see [`SUPPORT.md`](SUPPORT.md).
 
 ## Features
 

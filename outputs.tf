@@ -77,7 +77,7 @@ output "vpn_peer_configuration" {
     "📝 Phase 1"        = "${module.vpn_gateway[0].configuration_summary.phase1_encryption} / ${module.vpn_gateway[0].configuration_summary.phase1_integrity} / ${module.vpn_gateway[0].configuration_summary.phase1_dh_group}"
     "📝 Phase 2"        = "${module.vpn_gateway[0].configuration_summary.phase2_encryption} / ${module.vpn_gateway[0].configuration_summary.phase2_integrity} / PFS ${module.vpn_gateway[0].configuration_summary.phase2_pfs}"
     "📡 Routing"        = module.vpn_gateway[0].configuration_summary.routing_type
-  } : {
+    } : {
     "⏸️  Status" = "VPN Gateway disabled"
   }
   sensitive = false

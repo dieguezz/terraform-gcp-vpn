@@ -6,5 +6,5 @@ variable "firezone_admin_email" { type = string }
 variable "google_workspace_domain" { type = string }
 
 variable "scheduler_start_schedule" { type = string }
-variable "scheduler_stop_schedule"  { type = string }
-variable "scheduler_timezone"       { type = string }
+variable "scheduler_stop_schedule" { type = string }
+variable "scheduler_timezone" { type = string }

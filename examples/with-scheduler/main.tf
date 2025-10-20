@@ -15,7 +15,7 @@ module "vpn" {
   firezone_admin_email    = var.firezone_admin_email
   google_workspace_domain = var.google_workspace_domain
 
-  enable_scheduling = true
+  enable_scheduling       = true
   enable_site_to_site_vpn = false
 
   scheduler_start_schedule = var.scheduler_start_schedule

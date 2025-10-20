@@ -6,7 +6,7 @@ provider "google" {
 }
 
 module "vpn" {
-  source = "../.."  # Root module
+  source = "../.." # Root module
 
   project_id              = var.project_id
   region                  = var.region

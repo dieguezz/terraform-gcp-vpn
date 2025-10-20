@@ -10,6 +10,20 @@
 # - Required IAM bindings
 # ==============================================================================
 
+terraform {
+  required_version = ">= 1.6.0, < 2.0.0"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 7.4.0, < 8.0.0"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
+  }
+}
+
 # ==============================================================================
 # SERVICE ACCOUNT FOR CLOUD FUNCTIONS
 # ==============================================================================
@@ -56,6 +70,10 @@ resource "google_storage_bucket" "function_source" {
   force_destroy               = true
 
   labels = var.common_labels
+
+  encryption {
+    default_kms_key_name = var.bucket_kms_key != "" ? var.bucket_kms_key : null
+  }
 }
 
 # ==============================================================================

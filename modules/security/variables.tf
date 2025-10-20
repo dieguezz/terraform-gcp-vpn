@@ -40,3 +40,9 @@ variable "allowed_ssh_sources" {
   type        = list(string)
   default     = ["35.235.240.0/20"] # Google Identity-Aware Proxy
 }
+
+variable "allowed_egress_destinations" {
+  description = "CIDR destination ranges allowed for egress (default unrestricted)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
