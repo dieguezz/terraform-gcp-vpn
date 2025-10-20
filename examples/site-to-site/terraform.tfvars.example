@@ -1,0 +1,11 @@
+project_id              = "your-gcp-project-id"
+region                  = "europe-southwest1"
+zone                    = "europe-southwest1-a"
+firezone_domain         = "vpn.example.com"
+firezone_admin_email    = "admin@example.com"
+google_workspace_domain = "example.com"
+
+partner_peer_name        = "Partner Network"
+partner_peer_ip          = "203.0.113.10"
+partner_local_selectors  = ["10.200.0.0/24"]
+partner_remote_selectors = ["198.51.100.0/24"]

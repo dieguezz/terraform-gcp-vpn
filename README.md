@@ -1,6 +1,6 @@
-# VPN Infrastructure - Terraform
+# terraform-gcp-vpn
 
-Terraform modules for deploying enterprise VPN infrastructure on Google Cloud Platform.
+Production-ready VPN infrastructure on Google Cloud with Terraform. (Current implementation: Firezone + WireGuard remote access, optional IPsec site-to-site.)
 
 ## Features
 
@@ -107,8 +107,8 @@ graph TB
 
 ```bash
 # Clone and configure
-git clone https://github.com/dieguezz/vpn-infra.git
-cd vpn-infra
+git clone https://github.com/dieguezz/terraform-gcp-vpn.git
+cd terraform-gcp-vpn
 cp terraform.tfvars.example terraform.tfvars
 
 # Edit terraform.tfvars with your values

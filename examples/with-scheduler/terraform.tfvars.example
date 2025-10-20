@@ -1,0 +1,10 @@
+project_id              = "your-gcp-project-id"
+region                  = "europe-southwest1"
+zone                    = "europe-southwest1-a"
+firezone_domain         = "vpn.example.com"
+firezone_admin_email    = "admin@example.com"
+google_workspace_domain = "example.com"
+
+scheduler_start_schedule = "0 7 * * 1-5"
+scheduler_stop_schedule  = "0 20 * * 1-5"
+scheduler_timezone       = "Europe/Madrid"
