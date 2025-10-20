@@ -1,0 +1,166 @@
+# ==============================================================================
+# TERRAFORM CONFIGURATION TEMPLATE FOR VPN REMOTE ACCESS PROJECT
+#
+# Copy this file to terraform.tfvars and customize for your environment.
+# DO NOT commit terraform.tfvars if it contains sensitive information.
+#
+# Firezone Community Edition deployment with Google Workspace SSO integration.
+# ==============================================================================
+
+# ==============================================================================
+# CORE PROJECT CONFIGURATION
+# ==============================================================================
+
+# GCP project where the VPN infrastructure will be deployed
+project_id = "your-gcp-project-id"
+
+# Regional configuration (choose regions close to your users)
+region = "europe-southwest1"
+zone   = "europe-southwest1-a"
+
+# Environment designation (affects resource naming)
+environment = "prod"  # Options: dev, staging, prod
+
+# ==============================================================================
+# NETWORKING CONFIGURATION
+# ==============================================================================
+
+# VPC configuration
+vpc_name = "vpn-vpc"
+
+# Site-to-site VPN subnet (for B2B partner connections and Firezone instance)
+site_to_site_subnet_cidr = "10.148.151.0/27"
+
+# ==============================================================================
+# SECURITY CONFIGURATION
+# ==============================================================================
+
+# Service account for the VPN server (must exist in the project)
+service_account_name = "sa-vpn-server"
+
+# SSH access control (default restricts to Google IAP)
+allowed_ssh_sources = ["35.235.240.0/20"]  # Google Identity-Aware Proxy
+
+# VPN client source control (default allows from anywhere)
+# Restrict this in production if you have specific IP requirements
+allowed_vpn_sources = ["0.0.0.0/0"]
+
+# Security features
+enable_oslogin   = true
+enable_flow_logs = true
+enable_nat_logging = true
+
+# ==============================================================================
+# INSTANCE CONFIGURATION
+# ==============================================================================
+
+# Firezone instance configuration
+firezone_instance_name = "firezone-server-instance"
+firezone_machine_type  = "e2-small"    # Sufficient for moderate usage
+disk_size_gb          = 20
+disk_type            = "pd-standard"
+
+# Cost optimization (not recommended for production)
+preemptible_instance = false
+
+# ==============================================================================
+# MONITORING AND HEALTH CHECKS
+# ==============================================================================
+
+# Health check configuration (Firezone HTTPS admin interface)
+health_check_port     = 443
+health_check_interval = 10
+health_check_timeout  = 5
+
+# VPC Flow Logs sampling (1.0 = 100%, 0.5 = 50%)
+flow_logs_sampling = 1.0
+
+# ==============================================================================
+# FIREZONE CONFIGURATION
+# ==============================================================================
+
+# Domain configuration for Firezone
+firezone_domain = "vpn.yourcompany.com"
+
+# Admin email for Firezone (used for initial setup)
+firezone_admin_email = "admin@yourcompany.com"
+
+# Google Workspace integration
+google_workspace_domain = "yourcompany.com"
+
+# WireGuard protocol port
+wireguard_port = 51820
+
+# ==============================================================================
+# RESOURCE LABELING
+# ==============================================================================
+
+# Resource naming prefix
+resource_prefix = "vpn"
+
+# Common labels applied to all resources
+common_labels = {
+  project     = "vpn-remote-access"
+  managed-by  = "terraform"
+  solution    = "firezone"
+  component   = "vpn-infrastructure"
+}
+
+# Additional project-specific labels
+project_labels = {
+  team        = "infrastructure"
+  cost-center = "it-operations"
+  environment = "production"
+}
+
+# ==============================================================================
+# COST OPTIMIZATION - AUTOMATED SCHEDULING (OPTIONAL)
+# ==============================================================================
+
+# Enable automated instance start/stop to reduce infrastructure costs
+# Recommended for non-production or business-hours-only VPNs
+# Uses Cloud Scheduler and Cloud Functions to automate VM lifecycle
+enable_scheduling = false
+
+# Schedule in cron format: "minute hour day month weekday"
+# Default: Start at 7am Monday-Friday, Stop at 8pm Monday-Friday
+scheduler_start_schedule = "0 7 * * 1-5"
+scheduler_stop_schedule  = "0 20 * * 1-5"
+
+# Timezone for schedules (IANA format)
+scheduler_timezone = "Europe/Madrid"
+
+# ==============================================================================
+# SITE-TO-SITE VPN CONFIGURATION (OPTIONAL)
+# ==============================================================================
+
+# Enable Classic VPN for site-to-site connections
+enable_site_to_site_vpn = false
+
+# VPN tunnels configuration
+# Each tunnel connects to a remote partner network using IKEv2 and static routing
+# 
+# IMPORTANT SECURITY:
+# - Preshared keys must be stored in GCP Secret Manager
+# - Create secrets using: gcloud secrets create vpn-psk-<partner> --data-file=-
+# - Grant access: gcloud secrets add-iam-policy-binding vpn-psk-<partner> \
+#     --member="group:devops@yourcompany.com" --role="roles/secretmanager.secretAccessor"
+#
+# Example configuration:
+# vpn_tunnels = {
+#   partner_name = {
+#     peer_name               = "Partner Network"
+#     peer_ip                 = "203.0.113.10"
+#     local_traffic_selector  = ["10.148.151.0/27"]
+#     remote_traffic_selector = ["10.0.0.0/16"]
+#   }
+# }
+#
+# Then reference the secret in secrets.tf:
+# data "google_secret_manager_secret_version" "vpn_psk_partner" {
+#   secret  = "vpn-psk-partner"
+#   project = var.project_id
+# }
+#
+vpn_tunnels = {}
+

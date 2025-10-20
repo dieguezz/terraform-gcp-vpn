@@ -145,3 +145,12 @@ plan.out
 
 # Documentation builds
 docs/_build/
+
+# Local backups directory
+backup/
+
+# Temporary scripts and downloads
+get-docker.sh
+
+# Accidental files (IP:port patterns)
+*.*.*.*.*:

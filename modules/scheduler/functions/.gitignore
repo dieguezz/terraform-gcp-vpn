@@ -1,0 +1,3 @@
+# Temporary files generated during Terraform operations
+.tmp/
+*.zip

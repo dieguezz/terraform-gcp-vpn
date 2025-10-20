@@ -1,141 +1,177 @@
-# --- Configuración del Proveedor y Variables ---
+# ==============================================================================
+# VPN REMOTE ACCESS INFRASTRUCTURE - MAIN CONFIGURATION
+#
+# This Terraform configuration deploys Firezone Community Edition in GCP
+# with Google Workspace SSO integration and WireGuard protocol.
+#
+# The modular design ensures clean separation of concerns and easier maintenance.
+# ==============================================================================
+
+# ==============================================================================
+# PROVIDER CONFIGURATION
+# ==============================================================================
 
 provider "google" {
   project = var.project_id
   region  = var.region
 }
 
-variable "project_id" {
-  description = "El ID de proyecto de GCP."
-  type        = string
+# ==============================================================================
+# LOCAL VALUES FOR COMPUTED CONFIGURATIONS
+# ==============================================================================
+
+locals {
+  # Resource naming with consistent prefix and environment
+  resource_prefix = "${var.resource_prefix}-${var.environment}"
+
+  # Network tag for firewall rules
+  network_tag = "${var.resource_prefix}-server"
+
+  # Merged labels for consistent resource tagging
+  common_labels = merge(var.common_labels, var.project_labels, {
+    environment = var.environment
+    region      = var.region
+  })
+
+  # Firezone port configurations
+  firezone_tcp_ports = ["80", "443", "943"]           # HTTP, HTTPS y admin actual
+  firezone_udp_ports = [tostring(var.wireguard_port)] # WireGuard protocol
 }
 
-variable "region" {
-  description = "La región de GCP para desplegar los recursos."
-  type        = string
-  default     = "europe-southwest1"
+# ==============================================================================
+# NETWORK MODULE
+# 
+# Creates VPC, subnet, static IPs, and NAT gateway.
+# ==============================================================================
+
+module "network" {
+  source = "./modules/network"
+
+  vpc_name                 = var.vpc_name
+  region                   = var.region
+  resource_prefix          = local.resource_prefix
+  enable_flow_logs         = var.enable_flow_logs
+  flow_logs_sampling       = var.flow_logs_sampling
+  enable_nat_logging       = var.enable_nat_logging
+  site_to_site_subnet_cidr = var.site_to_site_subnet_cidr
 }
 
-variable "zone" {
-  description = "La zona de GCP para la VM."
-  type        = string
-  default     = "europe-southwest1-a"
+# ==============================================================================
+# COMPUTE MODULE - FIREZONE INSTANCE
+#
+# Firezone Community Edition with Google Workspace SSO integration.
+# ==============================================================================
+
+module "compute" {
+  source = "./modules/compute"
+
+  project_id     = var.project_id
+  instance_name  = var.firezone_instance_name
+  machine_type   = var.firezone_machine_type
+  zone           = var.zone
+  instance_image = var.instance_image
+  # Use site-to-site subnet so Firezone can reach partner networks when enabled
+  subnet_id            = module.network.site_to_site_subnet_id
+  network_tag          = local.network_tag
+  service_account_name = var.service_account_name
+  common_labels        = local.common_labels
+  preemptible_instance = var.preemptible_instance
+  disk_size_gb         = var.disk_size_gb
+  disk_type            = var.disk_type
+  enable_ip_forwarding = var.enable_ip_forwarding
+  enable_oslogin       = var.enable_oslogin
+
+  # Firezone specific variables
+  firezone_domain         = var.firezone_domain
+  google_workspace_domain = var.google_workspace_domain
+  firezone_admin_email    = var.firezone_admin_email
+  wireguard_port          = var.wireguard_port
 }
 
-# --- Red (VPC, Subnet, Firewall) ---
+# ==============================================================================
+# LOAD BALANCER MODULE
+#
+# Creates regional Network Load Balancer with backend services for Firezone.
+# ==============================================================================
 
-resource "google_compute_network" "vpn_vpc" {
-  name                    = "vpn-vpc"
-  auto_create_subnetworks = false
+module "load_balancer" {
+  source = "./modules/load-balancer"
+
+  resource_prefix       = local.resource_prefix
+  region                = var.region
+  zone                  = var.zone
+  instance_self_link    = module.compute.instance_self_link
+  ingress_ip            = module.network.ingress_ip
+  tcp_ports             = local.firezone_tcp_ports
+  udp_ports             = local.firezone_udp_ports
+  health_check_port     = var.health_check_port
+  health_check_interval = var.health_check_interval
+  health_check_timeout  = var.health_check_timeout
 }
 
-resource "google_compute_subnetwork" "vpn_subnet" {
-  name          = "vpn-subnet"
-  ip_cidr_range = "10.10.10.0/24"
-  region        = var.region
-  network       = google_compute_network.vpn_vpc.id
+# ==============================================================================
+# SECURITY MODULE
+#
+# Creates firewall rules with defense-in-depth approach for Firezone.
+# ==============================================================================
+
+module "security" {
+  source = "./modules/security"
+
+  resource_prefix     = local.resource_prefix
+  vpc_name            = module.network.vpc_name
+  network_tag         = local.network_tag
+  tcp_ports           = local.firezone_tcp_ports # CHANGED: Use Firezone ports
+  udp_ports           = local.firezone_udp_ports # CHANGED: Use Firezone ports
+  allowed_vpn_sources = var.allowed_vpn_sources
+  allowed_ssh_sources = var.allowed_ssh_sources
 }
 
-resource "google_compute_firewall" "allow_openvpn" {
-  name          = "allow-openvpn-access"
-  network       = google_compute_network.vpn_vpc.name
-  direction     = "INGRESS"
-  source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["openvpn-server"]
+# ==============================================================================
+# VPN GATEWAY MODULE (OPTIONAL)
+#
+# Creates IPsec site-to-site VPN tunnels to connect with external organizations.
+# Supports IKEv2 with customizable encryption parameters and BGP routing.
+# ==============================================================================
 
-  allow {
-    protocol = "udp"
-    ports    = ["1194"]
+module "vpn_gateway" {
+  count  = var.enable_site_to_site_vpn ? 1 : 0
+  source = "./modules/vpn-gateway"
+
+  resource_prefix = var.resource_prefix
+  environment     = var.environment
+  region          = var.region
+  network_id      = module.network.vpc_id
+
+  # VPN tunnels (Classic VPN with static traffic selectors)
+  vpn_tunnels = var.vpn_tunnels
+
+  # VPN secrets from GCP Secret Manager (dynamically built for each tunnel)
+  vpn_secrets = {
+    for key, tunnel in var.vpn_tunnels :
+    key => data.google_secret_manager_secret_version.vpn_psk[key].secret_data
   }
-  allow {
-    protocol = "tcp"
-    ports    = ["443", "943"] # Puertos para la consola web de OpenVPN AS
-  }
 }
 
-# REGLA DE FIREWALL PARA SSH A TRAVÉS DE IAP - MÁS SEGURA Y ROBUSTA
-resource "google_compute_firewall" "allow_ssh_via_iap" {
-  name          = "allow-ssh-via-iap"
-  network       = google_compute_network.vpn_vpc.name
-  direction     = "INGRESS"
-  # Este rango de IPs pertenece al servicio IAP de Google.
-  source_ranges = ["35.235.240.0/20"]
-  target_tags   = ["openvpn-server"]
+# ==============================================================================
+# SCHEDULER MODULE (OPTIONAL)
+#
+# Automates instance start/stop based on business hours to optimize costs.
+# When enabled, reduces VM costs by ~70% through automated shutdown.
+# ==============================================================================
 
-  allow {
-    protocol = "tcp"
-    ports    = ["22"]
-  }
-}
+module "scheduler" {
+  source = "./modules/scheduler"
 
-
-# --- Cloud NAT (IP de Salida Estática) ---
-resource "google_compute_address" "nat_static_ip" {
-  name   = "vpn-nat-static-ip"
-  region = var.region
-}
-resource "google_compute_router" "vpn_router" {
-  name    = "vpn-router"
-  network = google_compute_network.vpn_vpc.id
-  region  = var.region
-}
-resource "google_compute_router_nat" "vpn_nat" {
-  name                               = "vpn-nat-gateway"
-  router                             = google_compute_router.vpn_router.name
-  region                             = google_compute_router.vpn_router.region
-  source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS"
-  log_config {
-    enable = true
-    filter = "ERRORS_ONLY"
-  }
-  subnetwork {
-    name                    = google_compute_subnetwork.vpn_subnet.id
-    source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
-  }
-  nat_ip_allocate_option = "MANUAL_ONLY"
-  nat_ips                = [google_compute_address.nat_static_ip.self_link]
-}
-
-# --- Instancia de Compute Engine para OpenVPN ---
-resource "google_compute_instance" "openvpn_server" {
-  name         = "openvpn-server-instance"
-  machine_type = "e2-medium"
-  zone         = var.zone
-  tags         = ["openvpn-server"]
-
-  boot_disk {
-    initialize_params {
-      # Usamos la imagen de openvpn de un marketplace pero esto deberiamos sustituirlo por un ubuntu y configurarlo nosotros para no tener que pagar licencias. De momento el tier gratuito nos vale
-      image = "projects/openvpn-access-server-200800/global/images/aspub2143-20250711"
-    }
-  }
-
-  network_interface {
-    subnetwork = google_compute_subnetwork.vpn_subnet.id
-    access_config {}
-  }
-
-  can_ip_forward = true
-}
-
-# --- Outputs (Resultados) ---
-
-output "openvpn_admin_ui" {
-  description = "URL de la consola de administración de OpenVPN. Usa el usuario 'openvpn' y la contraseña que verás en los logs de la instancia."
-  value       = "https://${google_compute_instance.openvpn_server.network_interface[0].access_config[0].nat_ip}:943/admin"
-}
-
-output "openvpn_client_ui" {
-  description = "URL para que los usuarios descarguen el cliente VPN."
-  value       = "https://${google_compute_instance.openvpn_server.network_interface[0].access_config[0].nat_ip}:943"
-}
-
-output "instance_initial_password_command" {
-  description = "Obtener la contraseña inicial del usuario 'openvpn'."
-  value       = "gcloud compute instances get-serial-port-output ${google_compute_instance.openvpn_server.name} --zone ${google_compute_instance.openvpn_server.zone} | grep 'Initial password'"
-}
-
-output "egress_static_ip" {
-  description = "La IP de salida estática para la instancia OpenVPN."
-  value       = google_compute_address.nat_static_ip.address
+  project_id        = var.project_id
+  region            = var.region
+  zone              = var.zone
+  resource_prefix   = local.resource_prefix
+  instance_name     = module.compute.instance_name
+  enable_scheduling = var.enable_scheduling
+  start_schedule    = var.scheduler_start_schedule
+  stop_schedule     = var.scheduler_stop_schedule
+  schedule_timezone = var.scheduler_timezone
+  scheduler_region  = var.scheduler_region
+  common_labels     = local.common_labels
 }

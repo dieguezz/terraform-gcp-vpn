@@ -1,0 +1,4 @@
+# Minimal dependencies for Cloud Function
+functions-framework==3.*
+google-auth==2.*
+requests==2.*

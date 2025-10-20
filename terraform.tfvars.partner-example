@@ -1,0 +1,66 @@
+# ==============================================================================
+# SITE-TO-SITE VPN CONFIGURATION EXAMPLE
+#
+# This file demonstrates how to configure an IPsec tunnel with an external partner.
+# Copy to terraform.tfvars and adjust values for your environment.
+# ==============================================================================
+
+# Enable the site-to-site VPN Gateway
+enable_site_to_site_vpn = true
+
+# Tunnel configuration
+vpn_tunnels = {
+  partner_a = {
+    peer_name = "Partner A"
+    peer_ip   = "203.0.113.10"
+
+    # Local networks that the partner should reach (replace with your CIDR ranges)
+    local_traffic_selector = [
+      "10.200.0.0/24"
+    ]
+
+    # Partner networks that should be reachable across the tunnel
+    remote_traffic_selector = [
+      "198.51.100.0/24"
+    ]
+  }
+}
+
+# ==============================================================================
+# INFORMATION TO GATHER FROM YOUR PARTNER
+# ==============================================================================
+# 1. Preshared key (securely delivered via email or password manager)
+# 2. Partner-side LAN ranges that must be accessible
+# 3. Confirmation of supported IPsec parameters
+#
+# ==============================================================================
+# INFORMATION TO SHARE WITH YOUR PARTNER
+# ==============================================================================
+# After running `terraform apply`, execute:
+#   terraform output vpn_peer_configuration
+# This command prints the tunnel parameters your partner needs (gateway IP, selectors, algorithms).
+#
+# ==============================================================================
+# IPSEC PARAMETERS (CONFIGURED IN MODULE)
+# ==============================================================================
+# - Phase 1: IKEv2, AES-256, SHA-256, DH Group 14
+# - Phase 2: AES-256, SHA-256, PFS Group 14
+# - Dead Peer Detection enabled (10s interval)
+#
+# ==============================================================================
+# MULTIPLE TUNNEL EXAMPLE
+# ==============================================================================
+# vpn_tunnels = {
+#   partner_a = {
+#     peer_name               = "Partner A"
+#     peer_ip                 = "203.0.113.10"
+#     local_traffic_selector  = ["10.200.0.0/24"]
+#     remote_traffic_selector = ["198.51.100.0/24"]
+#   }
+#   partner_b = {
+#     peer_name               = "Partner B"
+#     peer_ip                 = "198.51.100.20"
+#     local_traffic_selector  = ["10.210.0.0/24"]
+#     remote_traffic_selector = ["203.0.113.0/24"]
+#   }
+# }
