@@ -6,39 +6,47 @@ Creates the foundational network infrastructure for the VPN setup. Provisions VP
 ## Architecture
 
 ```mermaid
-graph TB
-    Internet((Internet))
-    
-    subgraph Network Module
-        VPC[VPC Network<br/>Custom Mode]
-        Subnet[Subnet<br/>10.148.151.0/27<br/>Private IP Range]
-        Router[Cloud Router<br/>BGP Enabled]
-        NAT[Cloud NAT<br/>Outbound Only]
-        IP1[Static IP<br/>VPN Gateway]
-        IP2[Static IP<br/>Firezone VM]
+flowchart LR
+    %% External consumers of the network
+    subgraph External["External consumers"]
+        FirezoneVM["Firezone VM<br/>(compute module)"]
+        ClassicVPN["Classic Cloud VPN<br/>(vpn-gateway module)"]
+        RemoteUsers["WireGuard clients"]
+        PartnerNetworks["Partner networks"]
+        PublicInternet["Public internet"]
     end
-    
-    subgraph Attached Resources
-        VM[Firezone VM]
-        Gateway[VPN Gateway]
+
+    %% Network resources managed by this module
+    subgraph NetworkModule["module: network"]
+        VPC["VPC vpn-vpc<br/>custom mode"]
+        SiteToSiteSubnet["Subnet site-to-site<br/>10.200.0.0/24"]
+        CloudRouter["Cloud Router"]
+        CloudNAT["Cloud NAT gateway"]
+        StaticIngressIP["Static IP (ingress)<br/>(example 198.51.100.10)"]
+        StaticEgressIP["Static IP (egress)<br/>(example 198.51.100.20)"]
+        FlowLogs["VPC Flow Logs"]
     end
-    
-    Internet <-->|inbound| IP1
-    Internet <-->|inbound| IP2
-    IP1 -.-> Gateway
-    IP2 -.-> VM
-    Gateway --> VPC
-    VM --> Subnet
-    Subnet --> VPC
-    VPC --> Router
-    Router --> NAT
-    NAT -->|outbound only| Internet
-    
-    classDef networkResource fill:#34a853,stroke:#188038,color:#fff
-    classDef ipResource fill:#4285f4,stroke:#1967d2,color:#fff
-    
-    class VPC,Subnet,Router,NAT networkResource
-    class IP1,IP2 ipResource
+
+    %% Connectivity relationships
+    RemoteUsers -- "UDP 51820 via NLB" --> StaticIngressIP
+    FirezoneVM <-- "primary NIC" --> SiteToSiteSubnet
+    ClassicVPN <-- "tunnels" --> VPC
+    PartnerNetworks -- "IPsec" --> ClassicVPN
+    SiteToSiteSubnet --> VPC
+    VPC --> CloudRouter
+    CloudRouter --> CloudNAT
+    FirezoneVM -- "egress" --> CloudNAT
+    CloudNAT -- "SNAT" --> StaticEgressIP
+    StaticEgressIP -- "outbound traffic" --> PublicInternet
+    FlowLogs -- "publishes logs" --> VPC
+
+    %% Styling
+    classDef network fill:#34a853,stroke:#0c8040,color:#ffffff;
+    classDef external fill:#f8f9fa,stroke:#5f6368,color:#202124;
+    classDef control fill:#1a73e8,stroke:#174ea6,color:#ffffff;
+
+    class VPC,SiteToSiteSubnet,CloudRouter,CloudNAT,StaticIngressIP,StaticEgressIP,FlowLogs network;
+    class FirezoneVM,ClassicVPN,RemoteUsers,PartnerNetworks,PublicInternet external;
 ```
 
 ## Resources Created

@@ -143,6 +143,10 @@ id_rsa.pub
 *.tfplan
 plan.out
 
+# Launch checklist and marketing drafts (local planning only)
+LAUNCH_CHECKLIST.md
+assets/
+
 # Documentation builds
 docs/_build/
 

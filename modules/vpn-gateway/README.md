@@ -9,56 +9,56 @@ This module creates a Classic VPN Gateway in GCP for establishing secure IPsec t
 ## Architecture
 
 ```mermaid
-graph LR
-    subgraph Partner Side
-        PartnerGW[Partner VPN Gateway<br/>IPsec/IKEv2]
-        PartnerNet[Partner Network<br/>192.0.2.0/24]
-    end
-    
-    Internet((Internet))
-    
-    subgraph VPN Gateway Module
-        IP[Static IP<br/>External]
-        Gateway[VPN Gateway<br/>Classic VPN]
-        FwdESP[Forwarding Rule<br/>ESP Protocol]
-        FwdUDP500[Forwarding Rule<br/>UDP :500 IKE]
-        FwdUDP4500[Forwarding Rule<br/>UDP :4500 NAT-T]
-        Tunnel[VPN Tunnel<br/>IKEv2<br/>AES-256-CBC<br/>SHA2-256]
-        Route[Static Route<br/>to Partner Network]
-        PSK[Secret Manager<br/>Preshared Key]
-    end
-    
-    subgraph GCP Network
-        VPC[VPC Network]
-        LocalNet[Local Network<br/>10.148.151.0/27]
-        InternalRes[Internal Resources]
-    end
-    
-    PartnerNet -.->|encrypted| PartnerGW
-    PartnerGW <-->|IPsec| Internet
-    Internet <--> IP
-    IP --> FwdESP
-    IP --> FwdUDP500
-    IP --> FwdUDP4500
-    FwdESP --> Gateway
-    FwdUDP500 --> Gateway
-    FwdUDP4500 --> Gateway
-    Gateway --> Tunnel
-    Tunnel <-.->|uses| PSK
-    Tunnel --> Route
-    Route --> VPC
-    VPC --> LocalNet
-    LocalNet --> InternalRes
-    
-    classDef vpnResource fill:#4285f4,stroke:#1967d2,color:#fff
-    classDef securityResource fill:#ea4335,stroke:#c5221f,color:#fff
-    classDef networkResource fill:#34a853,stroke:#188038,color:#fff
-    classDef externalResource fill:#fbbc04,stroke:#f29900,color:#000
-    
-    class Gateway,Tunnel,FwdESP,FwdUDP500,FwdUDP4500,IP vpnResource
-    class PSK securityResource
-    class VPC,LocalNet,Route networkResource
-    class PartnerGW,PartnerNet externalResource
+flowchart LR
+  subgraph PartnerEnv[Partner environment]
+  PartnerGW["Partner VPN gateway"]
+  PartnerNet["Partner network<br/>example 192.168.10.0/24"]
+  end
+
+  Internet((Internet))
+
+  subgraph GatewayModule[VPN gateway module]
+  ExternalIP["Static external IP"]
+  ClassicVPN["Classic Cloud VPN gateway"]
+  FwdESP["Forwarding rule<br/>ESP"]
+  FwdIKE["Fwd rule<br/>UDP 500"]
+  FwdNATT["Fwd rule<br/>UDP 4500"]
+  VPNTunnel["VPN tunnel<br/>IKEv2"]
+  StaticRoute["Static route<br/>to partner"]
+  SecretPSK["Secret Manager<br/>preshared key"]
+  end
+
+  subgraph CustomerVPC[Customer VPC]
+  VPC["VPC network"]
+  LocalCIDR["Local subnet<br/>example 10.0.10.0/24"]
+  InternalApps["Internal services"]
+  end
+
+  PartnerNet -.->|protected traffic| PartnerGW
+  PartnerGW <-->|IPsec/IKEv2| Internet
+  Internet <--> ExternalIP
+  ExternalIP --> FwdESP
+  ExternalIP --> FwdIKE
+  ExternalIP --> FwdNATT
+  FwdESP --> ClassicVPN
+  FwdIKE --> ClassicVPN
+  FwdNATT --> ClassicVPN
+  ClassicVPN --> VPNTunnel
+  VPNTunnel -.-> SecretPSK
+  VPNTunnel --> StaticRoute
+  StaticRoute --> VPC
+  VPC --> LocalCIDR
+  LocalCIDR --> InternalApps
+
+  classDef edge fill:#4285f4,stroke:#174ea6,color:#fff
+  classDef secure fill:#ea4335,stroke:#c5221f,color:#fff
+  classDef network fill:#34a853,stroke:#0c8040,color:#fff
+  classDef partner fill:#e8eaed,stroke:#5f6368,color:#202124
+
+  class ClassicVPN,VPNTunnel,FwdESP,FwdIKE,FwdNATT,ExternalIP edge
+  class SecretPSK secure
+  class VPC,LocalCIDR,StaticRoute network
+  class PartnerGW,PartnerNet partner
 ```
 
 ## Features
@@ -112,9 +112,9 @@ module "vpn_gateway" {
   vpn_tunnels = {
     partner = {
       peer_name               = "Partner Network"
-      peer_ip                 = "203.0.113.10"
-      local_traffic_selector  = ["10.148.151.0/27"]
-      remote_traffic_selector = ["192.0.2.0/24"]
+  peer_ip                 = "198.51.100.10"
+  local_traffic_selector  = ["10.0.10.0/24"]
+  remote_traffic_selector = ["192.168.10.0/24"]
     }
   }
 
@@ -131,16 +131,16 @@ module "vpn_gateway" {
 vpn_tunnels = {
   partner_a = {
     peer_name               = "Partner A"
-    peer_ip                 = "203.0.113.10"
-    local_traffic_selector  = ["10.148.151.0/27"]
-    remote_traffic_selector = ["192.0.2.0/24"]
+  peer_ip                 = "198.51.100.10"
+  local_traffic_selector  = ["10.0.10.0/24"]
+  remote_traffic_selector = ["192.168.10.0/24"]
   }
   
   partner_b = {
     peer_name               = "Partner B"
-    peer_ip                 = "198.51.100.5"
-    local_traffic_selector  = ["10.148.151.0/27"]
-    remote_traffic_selector = ["198.18.0.0/16"]
+  peer_ip                 = "203.0.113.20"
+  local_traffic_selector  = ["10.0.20.0/24"]
+  remote_traffic_selector = ["198.18.0.0/16"]
   }
 }
 
@@ -218,8 +218,8 @@ Traffic selectors define which networks can communicate through the tunnel:
 ### Example
 
 ```hcl
-local_traffic_selector  = ["10.148.151.0/27"]  # Our VPN subnet
-remote_traffic_selector = ["192.0.2.0/24"]     # Partner's network
+local_traffic_selector  = ["10.0.10.0/24"]   # Local subnet exposed to the tunnel
+remote_traffic_selector = ["192.168.10.0/24"] # Partner network reachable over VPN
 ```
 
 ## Troubleshooting
