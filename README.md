@@ -1,6 +1,7 @@
 # terraform-gcp-vpn
 
 [![CI](https://github.com/dieguezz/terraform-gcp-vpn/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dieguezz/terraform-gcp-vpn/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/dieguezz/terraform-gcp-vpn/badge)](https://securityscorecards.dev/viewer/?uri=github.com/dieguezz/terraform-gcp-vpn)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 ![Maintained](https://img.shields.io/badge/maintained-yes-success)
 
