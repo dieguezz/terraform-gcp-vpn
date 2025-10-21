@@ -21,8 +21,11 @@ help:
 	@echo ""
 	@echo "💻 Terraform Commands"
 	@echo "  terraform init        - Initialize Terraform"
+	@echo "  terraform validate    - Validate configuration"
+	@echo "  terraform fmt         - Format files"
 	@echo "  terraform plan        - Review planned changes"
 	@echo "  terraform apply       - Apply infrastructure changes"
+	@echo "  terraform destroy     - Destroy infrastructure"
 	@echo ""
 
 # Site-to-Site VPN utilities
@@ -142,3 +145,4 @@ vpn-logs:
 	@gcloud logging read "resource.type=vpn_tunnel" \
 		--limit=50 \
 		--format="table(timestamp,resource.labels.tunnel_name,jsonPayload.message)"
+
