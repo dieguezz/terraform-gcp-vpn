@@ -1,4 +1,4 @@
 # Minimal dependencies for Cloud Function
 functions-framework==3.8.2
-google-auth==2.35.0
+google-auth==2.41.1
 requests==2.32.4
